@@ -38,9 +38,10 @@ docker pull container-registry.oracle.com/database/ords-developer:latest
 
 
 echo "Creating Docker Network ""${DOCKER_NETWORK_NAME}"""
-docker network create --driver=bridge --subnet=${NETWORK_SUBNET} --ip-range=${NETWORK_IP_RANGE} --gateway=${NETWORK_GATEWAY} ${DOCKER_NETWORK_NAME}
 if [ $(docker network ls|grep ${DOCKER_NETWORK_NAME}|wc -l) -gt 0 ]; then
     docker network ls|grep ${DOCKER_NETWORK_NAME}
+elif [ $(docker network ls|grep ${DOCKER_NETWORK_NAME}|wc -l) -eq 0 ]; then
+    docker network create --driver=bridge --subnet=${NETWORK_SUBNET} --ip-range=${NETWORK_IP_RANGE} --gateway=${NETWORK_GATEWAY} ${DOCKER_NETWORK_NAME}
 else
     echo "Docker network "${DOCKER_NETWORK_NAME}" couldn't created. Please tyr again."
     exit 1
@@ -48,5 +49,20 @@ fi
 
 
 echo "Running Oracle 23ai Free Docker Image with configured parameters"
-docker run -td --name ${DB_HOST_NAME} --hostname ${DB_HOST_NAME} --network ${DOCKER_NETWORK_NAME} --ip ${DB_IP} -p ${DB_EXPOSE_PORT}:${DB_PORT} -e ORACLE_PWD=${ORACLE_PASSWD} container-registry.oracle.com/database/free:latest
+
+if [ $(docker ps |grep ${${DB_HOST_NAME}}|wc -l) -gt 0 ]; then
+    docker network ls|grep ${DB_HOST_NAME}
+    echo "Docker Image ${DB_HOST_NAME} ia already up and running!"
+else
+    docker run -td --name ${DB_HOST_NAME} --hostname ${DB_HOST_NAME} --network ${DOCKER_NETWORK_NAME} --ip ${DB_IP} -p ${DB_EXPOSE_PORT}:${DB_PORT} -e ORACLE_PWD=${ORACLE_PASSWD} container-registry.oracle.com/database/free:latest
+    until [ $(docker logs ${DB_HOST_NAME}|grep "DATABASE IS READY TO USE"|wc -l) -gt 0 ]; do
+      sleep 1
+    done
+    echo "DATABASE IS READY TO USE!"
+fi
+
+echo "Creating ords_secrets and ords_config directories"
+mkdir ords_secrets ords_config
+chmod 755 ords_config
+echo 'CONN_STRING=user/password@hostname:port/service_name' > ords_secrets/conn_string.txt
 
