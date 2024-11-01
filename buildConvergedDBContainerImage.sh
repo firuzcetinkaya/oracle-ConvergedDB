@@ -61,6 +61,12 @@ else
     echo "DATABASE IS READY TO USE!"
 fi
 
+
+wget https://github.com/oracle-samples/db-sample-schemas/archive/refs/tags/v23.3.zip
+docker cp v23.3.zip CONVERGED_DB_FREE:/home/oracle/v23.3.zip
+docker exec -dt CONVERGED_DB_FREE unzip /home/oracle/v23.3.zip
+docker exec -dt CONVERGED_DB_FREE sqlplus sys/Oracle123@FREEPDB1 as sysdba
+
 echo "Creating ords_secrets and ords_config directories"
 mkdir ords_secrets ords_config
 chmod 755 ords_config
