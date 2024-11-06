@@ -79,19 +79,23 @@ else
 fi
 
 
-echo "Loading Sample Data to Oracle 23ai Free Docker Image"
+#echo "Loading Sample Data to Oracle 23ai Free Docker Image"
 
-wget https://github.com/oracle-samples/db-sample-schemas/archive/refs/tags/v23.3.zip
-docker cp v23.3.zip CONVERGED_DB_FREE:/home/oracle/v23.3.zip
-docker exec -dt CONVERGED_DB_FREE unzip /home/oracle/v23.3.zip
-echo "Loading Sample Data Customer Orders"
-docker exec -it CONVERGED_DB_FREE sqlplus sys/Oracle123@FREEPDB1 as sysdba @/home/oracle/db-sample-schemas-23.3/customer_orders/co_install.sql
-echo "Loading Sample Data Human Reesources"
-docker exec -it CONVERGED_DB_FREE sqlplus sys/Oracle123@FREEPDB1 as sysdba @/home/oracle/db-sample-schemas-23.3/human_resources/hr_install.sql
+#wget https://github.com/oracle-samples/db-sample-schemas/archive/refs/tags/v23.3.zip
+#docker cp v23.3.zip CONVERGED_DB_FREE:/home/oracle/v23.3.zip
+#docker exec -dt CONVERGED_DB_FREE unzip /home/oracle/v23.3.zip
+#echo "Loading Sample Data Customer Orders"
+#docker exec -it CONVERGED_DB_FREE sqlplus sys/Oracle123@FREEPDB1 as sysdba @/home/oracle/db-sample-schemas-23.3/customer_orders/co_install.sql
+#echo "Loading Sample Data Human Reesources"
+#docker exec -it CONVERGED_DB_FREE sqlplus sys/Oracle123@FREEPDB1 as sysdba @/home/oracle/db-sample-schemas-23.3/human_resources/hr_install.sql
 
 
 echo "Creating ords_secrets and ords_config directories"
 mkdir ords_secrets ords_config
 chmod 755 ords_config
-echo 'CONN_STRING=user/password@hostname:port/service_name' > ords_secrets/conn_string.txt
-
+echo "CONN_STRING=""sys as sysdba/${ORACLE_PASSWD}@${DB_IP}:${DB_PORT}/FREEPDB1""" > ords_secrets/conn_string.txt
+docker run -d --name ords --network ora_net --ip 172.11.0.3 -v `pwd`/ords_secrets/:/opt/oracle/variables -p 8181:8181 -p 27017:27017 container-registry.oracle.com/database/ords-developer:latest
+until [ $(docker logs ${ORDS_HOST_NAME}|grep "Oracle REST Data Services initialized"|wc -l) -gt 0 ]; do
+    sleep 3
+done
+    echo ""Oracle REST Data Services and APEX initialized!"
